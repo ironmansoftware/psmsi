@@ -220,3 +220,7 @@ User interfaces can include custom graphics and EULAs for your installer.&#x20;
 ```powershell
  $UserInterface = New-InstallerUserInterface -Eula (Join-Path $PSScriptRoot 'eula.rtf') -TopBanner (Join-Path $PSScriptRoot "banner.png") -Welcome (Join-Path $PSScriptRoot "welcome.png")
 ```
+
+### Ironman Software Free Tools
+
+For more free tools, visit the [Ironman Software free tools index](https://ironmansoftware.com/free-powershell-tools). 
