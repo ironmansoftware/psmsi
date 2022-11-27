@@ -10,6 +10,10 @@ To get started creating installers with PSMSI, you will need to download the lat
 Install-Module PSMSI
 ```
 
+## WiX Toolset
+
+This module is based on the v3 of the [Wix Toolset](https://wixtoolset.org/docs/v3/). There is so much more we could accomplish with this module. It mainly creates WiX XML and runs the WiX tools to generate MSIs. We're very open to PRs and issues. Feel free to check out the WiX documentation for features that could be added. 
+
 ## Creating your first installer
 
 The `New-Installer` cmdlet is used to generate an installer. It can contain directories and files for installation. The first step is to define the basic parameters of your installer.
