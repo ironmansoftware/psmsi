@@ -21,7 +21,7 @@ The `New-Installer` cmdlet is used to generate an installer. It can contain dire
 The Product and UpgradeCode parameters are required. The UpgradeCode is a GUID that needs to remain the same for each version of your product and should be unique from other products.
 
 ```powershell
-New-Installer -Product "My First Product" -UpgradeCode '1a73a1be-50e6-4e92-af03-586f4a9d9e82'
+New-Installer -ProductName "My First Product" -UpgradeCode '1a73a1be-50e6-4e92-af03-586f4a9d9e82'
 ```
 
 Within the Content parameter of the New-Installer cmdlet, you need to include a root directory for installation on the end user's machine. The root directory needs to be a predefined directory. One of the parameter sets on New-InstallerDirectory defines a PredefinedDirectory parameter that you can use to select the target root directory.
@@ -45,7 +45,7 @@ New-InstallerFile -Source .\MyTextFile.txt
 The full script for this installer looks like this.
 
 ```powershell
-New-Installer -Product "My First Product" -UpgradeCode '1a73a1be-50e6-4e92-af03-586f4a9d9e82' -Content {
+New-Installer -ProductName "My First Product" -UpgradeCode '1a73a1be-50e6-4e92-af03-586f4a9d9e82' -Content {
     New-InstallerDirectory -PredefinedDirectory "LocalAppDataFolder"  -Content {
        New-InstallerDirectory -DirectoryName "My First Product" -Content {
           New-InstallerFile -Source .\license.txt
@@ -65,7 +65,7 @@ You can use the `-RequriesElevation` parameter of `New-Installer` to change from
 The following creates an installer that will install to the program files folder.&#x20;
 
 ```powershell
-New-Installer -Product "My First Product" -UpgradeCode '1a73a1be-50e6-4e92-af03-586f4a9d9e82' -Content {
+New-Installer -ProductName "My First Product" -UpgradeCode '1a73a1be-50e6-4e92-af03-586f4a9d9e82' -Content {
     New-InstallerDirectory -PredefinedDirectory "ProgramFilesFolder"  -Content {
        New-InstallerDirectory -DirectoryName "My First Product" -Content {
           New-InstallerFile -Source .\license.txt
@@ -93,7 +93,7 @@ New-Installer -Product "My First Product" -UpgradeCode '1a73a1be-50e6-4e92-af03-
 The `UpgradeCode` value should be static to ensure that upgrades work successfully. Define the upgrade code by on `New-Installer`.
 
 ```powershell
-New-Installer -Product "My First Product" -UpgradeCode '1a73a1be-50e6-4e92-af03-586f4a9d9e82' -Content {
+New-Installer -ProductName "My First Product" -UpgradeCode '1a73a1be-50e6-4e92-af03-586f4a9d9e82' -Content {
     New-InstallerDirectory -PredefinedDirectory "ProgramFilesFolder"  -Content {
        New-InstallerDirectory -DirectoryName "My First Product" -Content {
           New-InstallerFile -Source .\license.txt
@@ -109,7 +109,7 @@ The installer version is set using the `Version` parameter of `New-Installer`. Y
 The version defaults to 1.0.&#x20;
 
 ```powershell
-New-Installer -Product "My First Product" -UpgradeCode '1a73a1be-50e6-4e92-af03-586f4a9d9e82' -Content {
+New-Installer -ProductName "My First Product" -UpgradeCode '1a73a1be-50e6-4e92-af03-586f4a9d9e82' -Content {
     New-InstallerDirectory -PredefinedDirectory "ProgramFilesFolder"  -Content {
        New-InstallerDirectory -DirectoryName "My First Product" -Content {
           New-InstallerFile -Source .\license.txt
