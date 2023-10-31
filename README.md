@@ -60,7 +60,7 @@ Running the above script will produce a WXS, WXSOBJ and MSI file in the output d
 
 ### All Users Installation
 
-You can use the `-RequriesElevation` parameter of `New-Installer` to change from the default `PerUser` installation to a `PerMachine` installation.
+You can use the `-RequiresElevation` parameter of `New-Installer` to change from the default `PerUser` installation to a `PerMachine` installation.
 
 The following creates an installer that will install to the program files folder.&#x20;
 
