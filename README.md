@@ -133,6 +133,7 @@ You can then use that script as a custom action during an installation.&#x20;
 ```powershell
 New-InstallerCustomAction -FileId 'CustomAction' -RunOnInstall
 ```
+Note that custom actions must be passed to `New-Installer` as an array in the `CustomAction` parameter (and **not** in the `Content` block).
 
 ### Arguments
 
