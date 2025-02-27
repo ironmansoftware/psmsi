@@ -122,7 +122,7 @@ namespace PSMSI.Xml
                         var customActionNode = new XElement(wixNamespace + "CustomAction",
                           new XAttribute("Id", customAction.Id + "UNINSTALL"),
                           new XAttribute("Property", "POWERSHELL"),
-                          new XAttribute("ExeCommand", $"{customAction.Arguments} -Command \"{{& '[#{customAction.FileId}]'}}\""),
+                          new XAttribute("ExeCommand", $"{customAction.Arguments} -File \"[#{customAction.FileId}]\" {customAction.ScriptArguments}"),
                           new XAttribute("Return", customAction.CheckReturnValue ? "check" : "ignore"),
                           new XAttribute("Execute", "deferred"));
 
