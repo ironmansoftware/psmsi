@@ -14,6 +14,8 @@ namespace PSMSI
         [Parameter(Mandatory = true)]
         public string ProductName { get; set; }
         [Parameter()]
+        public string Description { get; set; }
+        [Parameter()]
         public Version Version { get; set; } = new Version(1, 0);
         [Parameter()]
         public string Manufacturer { get; set; } = "Ironman Software, LLC";
@@ -48,6 +50,7 @@ namespace PSMSI
             var installer = new Models.Installer
             {
                 ProductName = ProductName,
+                Description = Description,
                 Version = Version,
                 Manufacturer = Manufacturer,
                 UpgradeCode = UpgradeCode,
