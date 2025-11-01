@@ -49,7 +49,12 @@ namespace PSMSI.Xml
 
             var targetDirNode = new XElement(wixNamespace + "Directory", new XAttribute("Id", "TARGETDIR"), new XAttribute("Name", "SourceDir"));
 
-            var featureNode = new XElement(wixNamespace + "Feature", new XAttribute("Id", installer.ProductName.Replace(" ", "_").ToUpper()), new XAttribute("Title", installer.ProductName), new XAttribute("Level", "1"));
+            var featureId = installer.ProductName.Replace(" ", "_").ToUpper();
+            if (featureId.Length > 38)
+            {
+                featureId = featureId.Substring(0, 38);
+            }
+            var featureNode = new XElement(wixNamespace + "Feature", new XAttribute("Id", featureId), new XAttribute("Title", installer.ProductName), new XAttribute("Level", "1"));
 
             var productNode = new XElement(wixNamespace + "Product",
                         new XAttribute("Id", installer.ProductId),
