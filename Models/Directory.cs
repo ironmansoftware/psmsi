@@ -7,6 +7,7 @@ namespace PSMSI.Models
         public string Name { get; set; }
         public string Id { get; set; }
         public bool Configurable { get; set; }
+        public string FeatureId { get; set; }
         public IEnumerable<object> Content { get; set; }
     }
 }

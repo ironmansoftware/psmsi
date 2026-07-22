@@ -10,5 +10,6 @@
         public string NewIcon { get; set; }
         public string UpIcon { get; set; }
         public string ExitDialogText { get; set; }
+        public string DialogSet { get; set; }
     }
 }

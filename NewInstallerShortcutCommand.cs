@@ -25,6 +25,10 @@ namespace PSMSI
         [Parameter]
         [ValidateSet("normal", "minimized", "maximized")]
         public string Show { get; set; } = "normal";
+        [Parameter]
+        [ValidateLength(1, 38)]
+        [ValidatePattern("^[A-Za-z_][A-Za-z0-9_.]*$")]
+        public string Feature { get; set; }
 
         protected override void ProcessRecord()
         {
@@ -42,7 +46,8 @@ namespace PSMSI
                 IconPath = IconPath,
                 WorkingDirectory = WorkingDirectoryId,
                 Arguments = Arguments,
-                Show = Show
+                Show = Show,
+                FeatureId = Feature
             });
         }
     }

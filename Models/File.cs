@@ -7,5 +7,6 @@ namespace PSMSI.Models
     {
         public string Id { get; set; }
         public string Source { get; set; }
+        public string FeatureId { get; set; }
     }
 }

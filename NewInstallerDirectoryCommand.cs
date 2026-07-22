@@ -18,6 +18,10 @@ namespace PSMSI
         public ScriptBlock Content { get; set; }
         [Parameter(ParameterSetName = "custom")]
         public SwitchParameter Configurable { get; set; }
+        [Parameter]
+        [ValidateLength(1, 38)]
+        [ValidatePattern("^[A-Za-z_][A-Za-z0-9_.]*$")]
+        public string Feature { get; set; }
 
         protected override void ProcessRecord()
         {
@@ -33,7 +37,8 @@ namespace PSMSI
                     Name = DirectoryName,
                     Id = Id,
                     Content = Content?.Invoke().Select(m => m.BaseObject),
-                    Configurable = Configurable
+                    Configurable = Configurable,
+                    FeatureId = Feature
                 });
             }
             else
@@ -42,7 +47,8 @@ namespace PSMSI
                 {
                     Name = PredefinedDirectoryName,
                     Id = PredefinedDirectoryName,
-                    Content = Content?.Invoke().Select(m => m.BaseObject)
+                    Content = Content?.Invoke().Select(m => m.BaseObject),
+                    FeatureId = Feature
                 });
             }
 

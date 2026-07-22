@@ -12,5 +12,6 @@ namespace PSMSI.Models
         public string WorkingDirectory { get; set; }
         public string Arguments { get; set; }
         public string Show { get; set; }
+        public string FeatureId { get; set; }
     }
 }

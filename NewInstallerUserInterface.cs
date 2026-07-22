@@ -23,6 +23,9 @@ namespace PSMSI
         public string UpIcon { get; set; }
         [Parameter]
         public string ExitDialogText { get; set; }
+        [Parameter]
+        [ValidateSet("Auto", "Minimal", "InstallDir", "FeatureTree", "Mondo")]
+        public string DialogSet { get; set; } = "Auto";
 
         protected override void ProcessRecord()
         {
@@ -105,7 +108,8 @@ namespace PSMSI
                 InformationIcon = InformationIcon,
                 NewIcon = NewIcon,
                 UpIcon = UpIcon,
-                ExitDialogText = ExitDialogText
+                ExitDialogText = ExitDialogText,
+                DialogSet = DialogSet
             });
         }
 

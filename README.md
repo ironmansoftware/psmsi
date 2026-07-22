@@ -181,6 +181,44 @@ New-InstallerDirectory -DirectoryName "My First Product" -Content {
 }
 ```
 
+## Features
+
+Features allow you to group files, folders and shortcuts into selectable install options. When features are present, PSMSI uses the WiX feature tree user interface by default so the end user can choose which features to install.
+
+Use `New-InstallerFeature` to create a feature scope. Content inside the feature is installed only when that feature is selected.
+
+```powershell
+New-Installer -ProductName "My First Product" -UpgradeCode '1a73a1be-50e6-4e92-af03-586f4a9d9e82' -Content {
+    New-InstallerDirectory -PredefinedDirectoryName "ProgramFilesFolder" -Content {
+        New-InstallerDirectory -DirectoryName "My First Product" -Id "INSTALLFOLDER" -Configurable -Content {
+            New-InstallerFeature -Id "Core" -Title "Core application" -Required -Content {
+                New-InstallerFile -Source .\app.exe -Id "AppExe"
+            }
+
+            New-InstallerFeature -Id "Samples" -Title "Sample files" -Description "Example scripts and supporting files." -DefaultState Absent -Content {
+                New-InstallerDirectory -DirectoryName "Samples" -Content {
+                    New-InstallerFile -Source .\samples\example.ps1
+                }
+            }
+        }
+    }
+} -OutputDirectory (Join-Path $PSScriptRoot "output")
+```
+
+`-DefaultState Install` installs a feature by default. `-DefaultState Absent` leaves it unselected by default but allows the user to select it. `-DefaultState CompleteOnly` installs it during a complete install when using the Mondo dialog set. `-DefaultState Disabled` prevents it from being installed.
+
+You can also assign individual files, folders or shortcuts to a feature by ID.
+
+```powershell
+New-InstallerFeature -Id "Shortcuts" -Title "Desktop shortcuts"
+
+New-InstallerDirectory -PredefinedDirectoryName "DesktopFolder" -Content {
+    New-InstallerShortcut -Name "My Product" -FileId "AppExe" -Feature "Shortcuts"
+}
+```
+
+The installer UI can be selected explicitly with `New-InstallerUserInterface -DialogSet`. Valid values are `Auto`, `Minimal`, `InstallDir`, `FeatureTree` and `Mondo`.
+
 ## Shortcuts
 
 Shortcuts can be defined for installers using `New-InstallerShortcut`. You will define where the shortcut is located using `New-InstallerDirectory` and reference a file by Id.&#x20;
