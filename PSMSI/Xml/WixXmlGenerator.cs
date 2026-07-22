@@ -18,6 +18,7 @@ namespace PSMSI.Xml
         {
             _files = new Dictionary<string, string>();
             _directories = new Dictionary<string, string>();
+            _configurableDirectoryId = null;
 
             var packageNode = new XElement(wixNamespace + "Package",
                             new XAttribute("InstallScope", installer.RequiresElevation ? "perMachine" : "perUser"),

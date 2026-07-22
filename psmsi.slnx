@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="PSMSI.Tests/PSMSI.Tests.csproj" />
+  <Project Path="PSMSI/PSMSI.csproj" />
+</Solution>
