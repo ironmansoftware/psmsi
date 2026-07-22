@@ -1,3 +1,5 @@
 bin/
 obj
-!Wix/bin
+TestResults/
+!PSMSI/Wix/bin/
+!PSMSI/Wix/bin/**
