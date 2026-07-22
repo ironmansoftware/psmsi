@@ -13,11 +13,15 @@ namespace PSMSI.Xml
 
         private Dictionary<string, string> _files;
         private Dictionary<string, string> _directories;
+        private Dictionary<string, XElement> _features;
+        private bool _hasExplicitFeatures;
 
         public XDocument Generate(Models.Installer installer)
         {
             _files = new Dictionary<string, string>();
             _directories = new Dictionary<string, string>();
+            _features = new Dictionary<string, XElement>();
+            _hasExplicitFeatures = false;
 
             var packageNode = new XElement(wixNamespace + "Package",
                             new XAttribute("InstallScope", installer.RequiresElevation ? "perMachine" : "perUser"),
@@ -55,6 +59,7 @@ namespace PSMSI.Xml
                 featureId = featureId.Substring(0, 38);
             }
             var featureNode = new XElement(wixNamespace + "Feature", new XAttribute("Id", featureId), new XAttribute("Title", installer.ProductName), new XAttribute("Level", "1"));
+            _features.Add(featureId, featureNode);
 
             var productNode = new XElement(wixNamespace + "Product",
                         new XAttribute("Id", installer.ProductId),
@@ -157,6 +162,11 @@ namespace PSMSI.Xml
 
             foreach (var item in installer.Content)
             {
+                DeclareFeatureXml(item, featureNode);
+            }
+
+            foreach (var item in installer.Content)
+            {
                 GenerateContentXml(item, installer, productNode, featureNode, targetDirNode);
             }
 
@@ -183,10 +193,97 @@ namespace PSMSI.Xml
                 }
             }
 
+            if (item is Models.Feature feature)
+            {
+                if (feature.Content != null)
+                {
+                    foreach (var content in feature.Content)
+                    {
+                        PopulateFileDictionary(content);
+                    }
+                }
+            }
+
             if (item is Models.File file)
             {
                 _files.Add(file.Id, file.Source);
             }
+        }
+
+        private void DeclareFeatureXml(object item, XElement parentFeatureNode)
+        {
+            if (item is Models.Feature feature)
+            {
+                var featureXml = CreateFeatureXml(feature);
+                parentFeatureNode.Add(featureXml);
+                _features.Add(feature.Id, featureXml);
+                _hasExplicitFeatures = true;
+
+                if (feature.Content != null)
+                {
+                    foreach (var content in feature.Content)
+                    {
+                        DeclareFeatureXml(content, featureXml);
+                    }
+                }
+
+                return;
+            }
+
+            if (item is Models.Directory directory && directory.Content != null)
+            {
+                foreach (var content in directory.Content)
+                {
+                    DeclareFeatureXml(content, parentFeatureNode);
+                }
+            }
+        }
+
+        private XElement CreateFeatureXml(Models.Feature feature)
+        {
+            if (_features.ContainsKey(feature.Id))
+            {
+                throw new Exception($"A feature with the ID '{feature.Id}' already exists. Feature IDs must be unique.");
+            }
+
+            var level = "1";
+            switch (feature.DefaultState)
+            {
+                case "Absent":
+                case "CompleteOnly":
+                    level = "1000";
+                    break;
+                case "Disabled":
+                    level = "0";
+                    break;
+            }
+
+            var featureXml = new XElement(wixNamespace + "Feature",
+                new XAttribute("Id", feature.Id),
+                new XAttribute("Title", string.IsNullOrEmpty(feature.Title) ? feature.Id : feature.Title),
+                new XAttribute("Level", level));
+
+            if (!string.IsNullOrEmpty(feature.Description))
+            {
+                featureXml.Add(new XAttribute("Description", feature.Description));
+            }
+
+            if (!string.IsNullOrEmpty(feature.Display))
+            {
+                featureXml.Add(new XAttribute("Display", feature.Display.ToLowerInvariant()));
+            }
+
+            if (feature.Required)
+            {
+                featureXml.Add(new XAttribute("Absent", "disallow"));
+            }
+
+            if (!string.IsNullOrEmpty(feature.ConfigurableDirectoryId))
+            {
+                featureXml.Add(new XAttribute("ConfigurableDirectory", feature.ConfigurableDirectoryId));
+            }
+
+            return featureXml;
         }
 
         private void GenerateContentXml(object item, Models.Installer installer, XElement productNode, XElement featureNode, XElement directoryNode)
@@ -202,11 +299,42 @@ namespace PSMSI.Xml
                 case nameof(Models.Shortcut):
                     GenerateShortcutXml(item as Models.Shortcut, installer, productNode, featureNode, directoryNode);
                     break;
+                case nameof(Models.Feature):
+                    GenerateFeatureContentXml(item as Models.Feature, installer, productNode, directoryNode);
+                    break;
+            }
+        }
+
+        private XElement ResolveFeatureNode(string featureId, XElement currentFeatureNode)
+        {
+            if (string.IsNullOrEmpty(featureId))
+            {
+                return currentFeatureNode;
+            }
+
+            if (!_features.TryGetValue(featureId, out var featureNode))
+            {
+                throw new Exception($"Feature '{featureId}' has not been defined. Add a New-InstallerFeature call with that ID.");
+            }
+
+            return featureNode;
+        }
+
+        private void GenerateFeatureContentXml(Models.Feature feature, Models.Installer installer, XElement productNode, XElement parentDirectory)
+        {
+            var featureNode = ResolveFeatureNode(feature.Id, null);
+            if (feature.Content != null)
+            {
+                foreach (var item in feature.Content)
+                {
+                    GenerateContentXml(item, installer, productNode, featureNode, parentDirectory);
+                }
             }
         }
 
         private void GenerateDirectoryXml(Models.Directory directory, Models.Installer installer, XElement productNode, XElement featureNode, XElement parentDirectory)
         {
+            featureNode = ResolveFeatureNode(directory.FeatureId, featureNode);
             var directoryXml = new XElement(wixNamespace + "Directory", new XAttribute("Id", directory.Id), new XAttribute("Name", directory.Name));
             if (directory.Content != null)
             {
@@ -233,6 +361,7 @@ namespace PSMSI.Xml
 
         private void GenerateFileXml(Models.File file, Models.Installer installer, XElement productNode, XElement featureNode, XElement parentDirectory)
         {
+            featureNode = ResolveFeatureNode(file.FeatureId, featureNode);
             var componentId = "cmp" + System.Guid.NewGuid().ToString("n");
             var componentXml = new XElement(wixNamespace + "Component",
                 new XAttribute("Id", componentId),
@@ -252,6 +381,7 @@ namespace PSMSI.Xml
 
         private void GenerateShortcutXml(Models.Shortcut shortcut, Models.Installer installer, XElement productNode, XElement featureNode, XElement parentDirectory)
         {
+            featureNode = ResolveFeatureNode(shortcut.FeatureId, featureNode);
             var componentId = "cmp" + System.Guid.NewGuid().ToString("n");
 
             var shortcutXml = new XElement(wixNamespace + "Shortcut",
@@ -325,11 +455,11 @@ namespace PSMSI.Xml
         private void GenerateUserInterface(Models.Installer installer, XElement productNode, XElement featureNode, XElement parentDirectory)
         {
             var userInterface = installer.UserInterface;
-            if (userInterface == null) return;
+            if (userInterface == null && !_hasExplicitFeatures) return;
 
             var uiXml = new XElement(wixNamespace + "UI");
 
-            if (!string.IsNullOrEmpty(userInterface.ExitDialogText))
+            if (!string.IsNullOrEmpty(userInterface?.ExitDialogText))
             {
                 var element = new XElement(wixNamespace + "Property",
                     new XAttribute("Id", "WIXUI_EXITDIALOGOPTIONALTEXT"),
@@ -338,69 +468,122 @@ namespace PSMSI.Xml
                 productNode.Add(element);
             }
 
-            if (userInterface.Eula != null)
+            if (userInterface?.Eula != null)
             {
                 productNode.Add(new XElement(wixNamespace + "WixVariable", new XAttribute("Id", "WixUILicenseRtf"), new XAttribute("Value", userInterface.Eula)));
             }
 
-            if (userInterface.ExclamationIcon != null)
+            if (userInterface?.ExclamationIcon != null)
             {
                 productNode.Add(new XElement(wixNamespace + "WixVariable", new XAttribute("Id", "WixUIExclamationIco"), new XAttribute("Value", userInterface.ExclamationIcon)));
             }
 
-            if (userInterface.TopBanner != null)
+            if (userInterface?.TopBanner != null)
             {
                 productNode.Add(new XElement(wixNamespace + "WixVariable", new XAttribute("Id", "WixUIBannerBmp"), new XAttribute("Value", userInterface.TopBanner)));
             }
 
-            if (userInterface.WelcomeAndCompletionBackground != null)
+            if (userInterface?.WelcomeAndCompletionBackground != null)
             {
                 productNode.Add(new XElement(wixNamespace + "WixVariable", new XAttribute("Id", "WixUIDialogBmp"), new XAttribute("Value", userInterface.WelcomeAndCompletionBackground)));
             }
 
-            if (userInterface.InformationIcon != null)
+            if (userInterface?.InformationIcon != null)
             {
                 productNode.Add(new XElement(wixNamespace + "WixVariable", new XAttribute("Id", "WixUIInfoIco"), new XAttribute("Value", userInterface.InformationIcon)));
             }
 
-            if (userInterface.NewIcon != null)
+            if (userInterface?.NewIcon != null)
             {
                 productNode.Add(new XElement(wixNamespace + "WixVariable", new XAttribute("Id", "WixUINewIco"), new XAttribute("Value", userInterface.NewIcon)));
             }
 
-            if (userInterface.UpIcon != null)
+            if (userInterface?.UpIcon != null)
             {
                 productNode.Add(new XElement(wixNamespace + "WixVariable", new XAttribute("Id", "WixUIUpIco"), new XAttribute("Value", userInterface.UpIcon)));
             }
 
-            if (string.IsNullOrEmpty(_configurableDirectoryId) && userInterface.Eula != null)
+            var dialogSet = userInterface?.DialogSet ?? "Auto";
+            if (dialogSet == "Auto")
             {
-                uiXml.Add(new XElement(wixNamespace + "UIRef", new XAttribute("Id", "WixUI_Minimal")));
-            }
-            else if (!string.IsNullOrEmpty(_configurableDirectoryId))
-            {
-                productNode.Add(new XElement(wixNamespace + "Property", new XAttribute("Id", "WIXUI_INSTALLDIR"), new XAttribute("Value", _configurableDirectoryId)));
-                uiXml.Add(new XElement(wixNamespace + "UIRef", new XAttribute("Id", "WixUI_InstallDir")));
-                if (userInterface.Eula == null)
+                if (_hasExplicitFeatures)
                 {
-                    uiXml.Add(new XElement(wixNamespace + "Publish",
-                        new XAttribute("Dialog", "WelcomeDlg"),
-                        new XAttribute("Control", "Next"),
-                        new XAttribute("Event", "NewDialog"),
-                        new XAttribute("Value", "InstallDirDlg"),
-                        new XAttribute("Order", "2"),
-                        1));
-                    uiXml.Add(new XElement(wixNamespace + "Publish",
-                        new XAttribute("Dialog", "InstallDirDlg"),
-                        new XAttribute("Control", "Back"),
-                        new XAttribute("Event", "NewDialog"),
-                        new XAttribute("Value", "WelcomeDlg"),
-                        new XAttribute("Order", "2"),
-                        1));
+                    dialogSet = "FeatureTree";
+                }
+                else if (!string.IsNullOrEmpty(_configurableDirectoryId))
+                {
+                    dialogSet = "InstallDir";
+                }
+                else if (userInterface?.Eula != null)
+                {
+                    dialogSet = "Minimal";
                 }
             }
 
+            if ((dialogSet == "FeatureTree" || dialogSet == "Mondo") && !string.IsNullOrEmpty(_configurableDirectoryId) && featureNode.Attribute("ConfigurableDirectory") == null)
+            {
+                featureNode.Add(new XAttribute("ConfigurableDirectory", _configurableDirectoryId));
+            }
+
+            if (dialogSet == "Minimal")
+            {
+                uiXml.Add(new XElement(wixNamespace + "UIRef", new XAttribute("Id", "WixUI_Minimal")));
+            }
+            else if (dialogSet == "InstallDir")
+            {
+                if (string.IsNullOrEmpty(_configurableDirectoryId))
+                {
+                    throw new System.Exception("WixUI_InstallDir requires a configurable directory. Add -Configurable to one New-InstallerDirectory call or use -DialogSet FeatureTree.");
+                }
+
+                productNode.Add(new XElement(wixNamespace + "Property", new XAttribute("Id", "WIXUI_INSTALLDIR"), new XAttribute("Value", _configurableDirectoryId)));
+                uiXml.Add(new XElement(wixNamespace + "UIRef", new XAttribute("Id", "WixUI_InstallDir")));
+                if (userInterface?.Eula == null)
+                {
+                    AddDialogSkipLicense(uiXml, "InstallDirDlg");
+                }
+            }
+            else if (dialogSet == "FeatureTree")
+            {
+                uiXml.Add(new XElement(wixNamespace + "UIRef", new XAttribute("Id", "WixUI_FeatureTree")));
+                if (userInterface?.Eula == null)
+                {
+                    AddDialogSkipLicense(uiXml, "CustomizeDlg");
+                }
+            }
+            else if (dialogSet == "Mondo")
+            {
+                uiXml.Add(new XElement(wixNamespace + "UIRef", new XAttribute("Id", "WixUI_Mondo")));
+                if (userInterface?.Eula == null)
+                {
+                    AddDialogSkipLicense(uiXml, "SetupTypeDlg");
+                }
+            }
+
+            if (!uiXml.HasElements)
+            {
+                return;
+            }
+
             productNode.Add(uiXml);
+        }
+
+        private void AddDialogSkipLicense(XElement uiXml, string nextDialog)
+        {
+            uiXml.Add(new XElement(wixNamespace + "Publish",
+                new XAttribute("Dialog", "WelcomeDlg"),
+                new XAttribute("Control", "Next"),
+                new XAttribute("Event", "NewDialog"),
+                new XAttribute("Value", nextDialog),
+                new XAttribute("Order", "2"),
+                1));
+            uiXml.Add(new XElement(wixNamespace + "Publish",
+                new XAttribute("Dialog", nextDialog),
+                new XAttribute("Control", "Back"),
+                new XAttribute("Event", "NewDialog"),
+                new XAttribute("Value", "WelcomeDlg"),
+                new XAttribute("Order", "2"),
+                1));
         }
 
 

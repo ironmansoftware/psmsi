@@ -11,6 +11,10 @@ namespace PSMSI
         public string Id { get; set; }
         [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0)]
         public string Source { get; set; }
+        [Parameter]
+        [ValidateLength(1, 38)]
+        [ValidatePattern("^[A-Za-z_][A-Za-z0-9_.]*$")]
+        public string Feature { get; set; }
 
         protected override void ProcessRecord()
         {
@@ -25,7 +29,8 @@ namespace PSMSI
             WriteObject(new Models.File
             {
                 Id = Id,
-                Source = Source
+                Source = Source,
+                FeatureId = Feature
             });
         }
     }

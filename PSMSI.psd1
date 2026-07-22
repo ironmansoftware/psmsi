@@ -11,6 +11,7 @@
         'New-InstallerFile', 
         'New-InstallerShortcut', 
         'New-InstallerDirectory', 
+        'New-InstallerFeature',
         'New-InstallerUserInterface', 
         'New-InstallerCustomAction'
     )
